@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 const { User } = require("./models/schema")
 
 
@@ -21,7 +22,7 @@ const createResponse = (status, body) => ({
 exports.createAccount = async (event) => {
     try {
         const { id, password, name, img, role, masterPassword } = JSON.parse(event.body)
-        if (masterPassword !== process.env.masterPassword) return createResponse(403, {message: "Wrong masterPassword"})
+        if (masterPassword !== process.env.MASTER_PASSWORD) return createResponse(403, {message: "Wrong masterPassword"})
         if (!id || !password || !name || !img || !role) return createResponse(400, {message: "need more Info"})
 
         const salt = crypto.randomBytes(64).toString('base64')
@@ -49,7 +50,35 @@ exports.createAccount = async (event) => {
     }
 }
 
-exports.readStories = async (event) => {
+exports.login = async (event) => {
+    try {
+        const { id, password } = JSON.parse(event.body)
+        if (!id) return createResponse(400, {message: "need_id"})
+        if (!password) return createResponse(400, {message: "need_password"})
+
+        await connect()
+        const accountInfo = await User.findOne({userId: id})
+        if (!accountInfo) return createResponse(400, {message: "user_not_found"})
+
+        const hashedPassword = crypto.pbkdf2Sync(password, accountInfo.userPasswordSalt, 8, 64, 'sha512').toString('base64')
+        if (hashedPassword !== accountInfo.userPassword) return createResponse(403, {message: "wrong_password"})
+
+        const token = jwt.sign({
+            id: id,
+            name: accountInfo.name,
+            img: accountInfo.img
+        }, process.env.MASTER_PASSWORD, {
+            expiresIn: '7d',
+            issuer: 'api.hyuns.dev',
+            subject: 'userInfo'
+        })
+
+        return createResponse(200, {message: "login_successful", token})
+    } catch (err) {
+        return createResponse(500, {error: err})
+    }
+
+
     await connect()
     const res = await Story.find().sort({_id: -1}).limit(20).lean().exec()
     return createResponse(200, res)
