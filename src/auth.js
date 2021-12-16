@@ -3,12 +3,10 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { User } = require("./models/schema")
 
-
 let connection = null
 
 const connect = async () => {
     if (connection && mongoose.connection.readyState === 1) return await connection
-
     const conn = await mongoose.connect(process.env.DB_CONNECT);
     connection = conn
     return connection
@@ -32,7 +30,7 @@ exports.createAccount = async (event) => {
 
         const alreadyAccount = await User.findOne({ userId: id })
 
-        if (alreadyAccount) return createResponse(202, { message: "이미 계정이 있습니다." })
+        if (alreadyAccount) return createResponse(202, { message: "already_account_exist" })
 
         const story = new User({
             userId: id,
@@ -90,7 +88,6 @@ exports.deleteAccount = async (event) => {
         } catch (err) {
             return createResponse(403, { message: "wrong_token" })
         }
-
 
         await connect()
         const accountInfo = await User.findOne({ userId: verifiedToken.id })

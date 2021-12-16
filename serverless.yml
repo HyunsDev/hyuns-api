@@ -42,3 +42,59 @@ functions:
       - http:
           path: auth/account
           method: patch
+
+  serverCreate:
+    handler: src/server.serverCreate
+    events: 
+      - http:
+          path: server
+          method: post
+
+  serversInfo:
+    handler: src/server.serversInfo
+    events: 
+      - http:
+          path: server/info
+          method: get
+
+  serverInfo:
+    handler: src/server.serverInfo
+    events: 
+      - http:
+          path: server/info/{serverName}
+          method: get
+
+  serversMessageList:
+    handler: src/server.serversMessageList
+    events: 
+      - http:
+          path: server/message
+          method: get
+
+  serverMessageList:
+    handler: src/server.serverMessageList
+    events: 
+      - http:
+          path: server/message/{serverName}
+          method: get
+
+  serverSendMessage:
+    handler: src/server.serverSendMessage
+    events: 
+      - http:
+          path: server/message/{serverName}
+          method: post
+
+  serverPatch:
+    handler: src/server.serverPatch
+    events: 
+      - http:
+          path: server/{serverName}
+          method: patch
+
+  serverRemove:
+    handler: src/server.serverRemove
+    events: 
+      - http:
+          path: server/{serverName}
+          method: delete
