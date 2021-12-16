@@ -137,30 +137,4 @@ exports.patchAccount = async (event) => {
     } catch (err) {
         return createResponse(500, err)
     }
-
-}
-
-exports.readStory = async (event) => {
-    try {
-        await connect()
-        const story = await Story.findById(event.pathParameters.id).exec()
-        if (!story) return { statusCode: 404 }
-        return createResponse(200, story)
-    } catch (err) {
-        return createResponse(500, { error: err })
-    }
-}
-
-exports.updateStory = async (event) => {
-    const update = JSON.parse(event.body)
-    await connect()
-    const story = await Story.findOneAndUpdate({ _id: event.pathParameters.id }, update, { new: true }).exec()
-    if (!story) return { statusCode: 404 }
-    return createResponse(200, story)
-}
-
-exports.deleteStory = async (event) => {
-    await connect()
-    await Story.remove({ _id: event.pathParameters.id }).exec()
-    return createResponse(204, null)
 }
