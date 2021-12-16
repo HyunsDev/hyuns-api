@@ -1,71 +1,44 @@
-service: hello-serverless
-# app and org for use with dashboard.serverless.com
-#app: your-app-name
-#org: your-org-name
-
-# You can pin your service to only deploy with a specific Serverless version
-# Check out our docs for more details
+service: hyuns-api
 frameworkVersion: '2'
+
+custom:
+  env: ${file(./env/${opt:stage, 'dev'}.json)}
 
 provider:
   name: aws
   runtime: nodejs14.x
-  lambdaHashingVersion: 20201221
+  lambdaHashingVersion: 20211216
   region: ap-northeast-2
   stage: dev
-
-
-# you can overwrite defaults here
-#  stage: dev
-#  region: us-east-1
-
-# you can add statements to the Lambda function's IAM Role here
-#  iam:
-#    role:
-#      statements:
-#        - Effect: "Allow"
-#          Action:
-#            - "s3:ListBucket"
-#          Resource: { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "ServerlessDeploymentBucket" } ] ]  }
-#        - Effect: "Allow"
-#          Action:
-#            - "s3:PutObject"
-#          Resource:
-#            Fn::Join:
-#              - ""
-#              - - "arn:aws:s3:::"
-#                - "Ref" : "ServerlessDeploymentBucket"
-#                - "/*"
-
-# you can define service wide environment variables here
-#  environment:
-#    variable1: value1
-
-# you can add packaging information here
-#package:
-#  patterns:
-#    - '!exclude-me.js'
-#    - '!exclude-me-dir/**'
-#    - include-me.js
-#    - include-me-dir/**
+  environment:
+    DB_CONNECT: ${self:custom.env.DB_CONNECT}
+    MASTER_PASSWORD: ${self:custom.env.MASTER_PASSWORD}
 
 functions:
-  hello:
-    handler: handler.hello
-    events:
+  authLogin:
+    handler: src/auth.login
+    events: 
       - http:
-          path: hello
-          method: get
+          path: auth/login
+          method: post
 
+  authCreateAccount:
+    handler: src/auth.createAccount
+    events: 
+      - http:
+          path: auth/account
+          method: post
 
-# you can add CloudFormation resource templates here
-#resources:
-#  Resources:
-#    NewResource:
-#      Type: AWS::S3::Bucket
-#      Properties:
-#        BucketName: my-new-bucket
-#  Outputs:
-#     NewOutput:
-#       Description: "Description for the output"
-#       Value: "Some output value"
+  authDeleteAccount:
+    handler: src/auth.deleteAccount
+    events: 
+      - http:
+          path: auth/account
+          method: delete
+
+  authPatchAccount:
+    handler: src/auth.patchAccount
+    events: 
+      - http:
+          path: auth/account
+          method: patch
