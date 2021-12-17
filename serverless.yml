@@ -113,7 +113,6 @@ functions:
           path: var/{isSecret}
           method: post
 
-
   varList:
     handler: src/var.varList
     events: 
