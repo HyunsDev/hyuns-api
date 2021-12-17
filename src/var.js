@@ -88,3 +88,54 @@ exports.varListByGroup = async (event) => {
 
     return createResponse(200, {message: "vars_found", data: variable})
 }
+
+exports.varValue = async (event) => {
+    if (event.pathParameters.isSecret !== "secret" && event.pathParameters.isSecret !== "global") return createResponse(404, "")
+    const isSecret = event.pathParameters.isSecret == "secret"
+
+    if(isSecret) {
+        if (!event?.headers?.Authorization) return createResponse(400, { message: "need_token" })
+        const token = event.headers.Authorization.replace("Bearer ", "")
+    
+        try {
+            jwt.verify(token, process.env.MASTER_PASSWORD)
+        } catch (err) {
+            return createResponse(403, { message: "wrong_token" })
+        }
+    }
+
+    await connect()
+    const variable = await Var.findOne({varIsSecret: isSecret, varGroup: event.pathParameters.group, varKey: event.pathParameters.key})
+    return {
+        statusCode: 200,
+        body: variable.varValue
+    }
+}
+
+exports.varValue = async (event) => {
+    if (event.pathParameters.isSecret !== "secret" && event.pathParameters.isSecret !== "global") return createResponse(404, "")
+    const isSecret = event.pathParameters.isSecret == "secret"
+
+    if (!event?.headers?.Authorization) return createResponse(400, { message: "need_token" })
+    const token = event.headers.Authorization.replace("Bearer ", "")
+
+    try {
+        jwt.verify(token, process.env.MASTER_PASSWORD)
+    } catch (err) {
+        return createResponse(403, { message: "wrong_token" })
+    }
+    
+    const { value, img } = JSON.parse(event.body)
+
+    await connect()
+    const variable = await Var.findOne({varIsSecret: isSecret, varGroup: event.pathParameters.group, varKey: event.pathParameters.key})
+    if (!variable) return createResponse(404, {message: "var_not_found"})
+
+    const update = {}
+    if (value) update.varValue = value
+    if (img) update.varImg = img
+
+    const newVar = await Var.update({varIsSecret: isSecret, varGroup: event.pathParameters.group, varKey: event.pathParameters.key}, update, {new: true})
+
+    return createResponse(200, {message: "var_updated", data: newVar})
+}
