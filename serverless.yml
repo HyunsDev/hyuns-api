@@ -98,3 +98,10 @@ functions:
       - http:
           path: server/{serverName}
           method: delete
+
+  serverMessageRemove:
+    handler: src/server.serverMessageRemove
+    events: 
+      - http:
+          path: server/message/{messageId}
+          method: delete

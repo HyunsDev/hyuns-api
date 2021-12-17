@@ -61,7 +61,7 @@ exports.serverCreate = async (event) => {
 }
 
 exports.serverInfo = async (event) => {
-    const token = event.queryStringParameters.token
+    const token = event?.queryStringParameters?.token
     if (!token) return createResponse(400, { message: "need_token" })
 
     try {
@@ -94,8 +94,11 @@ exports.serversInfo = async (event) => {
 }
 
 exports.serverSendMessage = async (event) => {
-    const key = event.headers?.Authorization.replace("Bearer ","")
-    if (!key) return createResponse(400, { message: "need_api_key" })
+    const headerKey = event?.headers?.Authorization
+    if (!headerKey) return createResponse(400, { message: "need_api_key" })
+    const key = headerKey.replace("Bearer ","")
+    const serverId = event?.pathParameters?.serverName
+    if (!serverId) return createResponse(400, { message: "need_serverId" })
 
     const reqMsg = JSON.parse(event.body)
     if(!reqMsg.content || !reqMsg.level) return createResponse(400, { message: "need_content_and_level" })
@@ -107,16 +110,53 @@ exports.serverSendMessage = async (event) => {
     }
 
     await connect()
-    const server = await Server.findOne({svId: event.pathParameters?.serverName})
+    const server = await Server.findOne({svId: serverId})
     if (!server) if (!server) return createResponse(202, { message: "server_not_found" })
 
     const msg = new Message({
         msgContent: reqMsg.content,
-        msgAuthor: server.svId,
+        msgAuthorId: server.svId,
         msgLevel: reqMsg.level
     })
 
     const ResMsg = await msg.save()
 
     return createResponse(200, {message: "message_send", data: ResMsg})
+}
+
+exports.serverMessageList = async (event) => {
+    const token = event?.queryStringParameters?.token
+    const serverId = event?.pathParameters?.serverName
+    if (!token) return createResponse(400, { message: "need_token" })
+    if (!serverId) return createResponse(400, { message: "need_serverId" })
+    
+
+    try {
+        jwt.verify(token, process.env.MASTER_PASSWORD)
+    } catch (err) {
+        return createResponse(403, { message: "wrong_token" })
+    }
+
+    await connect()
+    const messages = await Message.find({ msgAuthorId: serverId })
+    if (!messages) return createResponse(202, { message: "message_not_found" })
+
+    return createResponse(200, {message: "messages_found", data: messages})
+}
+
+exports.serversMessageList = async (event) => {
+    const token = event?.queryStringParameters?.token
+    if (!token) return createResponse(400, { message: "need_token" })
+
+    try {
+        jwt.verify(token, process.env.MASTER_PASSWORD)
+    } catch (err) {
+        return createResponse(403, { message: "wrong_token" })
+    }
+
+    await connect()
+    const messages = await Message.find({})
+    if (!messages) return createResponse(202, { message: "message_not_found" })
+
+    return createResponse(200, {message: "messages_found", data: messages})
 }
