@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { User, Server, Message } = require("./models/schema")
 
@@ -18,9 +17,11 @@ const createResponse = (status, body) => ({
 })
 
 exports.serverCreate = async (event) => {
-    const { sv, token } = JSON.parse(event.body)
-    if (!token) return createResponse(400, { message: "need_token" })
-    if (!sv) return createResponse(400, { message: "need_serverInfo" })
+    if (!event?.headers?.Authorization) return createResponse(400, { message: "need_token" })
+    const token = event.headers.Authorization.replace("Bearer ", "")
+
+    const { id, name, address, checkURL, img } = JSON.parse(event.body)
+    if (!id || !name || !address || !checkURL || !img) return createResponse(400, { message: "need_serverInfo" })
 
     let verifiedToken
     try {
@@ -30,11 +31,11 @@ exports.serverCreate = async (event) => {
     }
 
     await connect()
-    
-    const accountInfo = await User.findOne({ userId: verifiedToken.id })
-    if (!accountInfo) return createResponse(400, { message: "user_not_found" })
 
-    const alreadyServer = await Server.findOne({ svName: sv.name })
+    const accountInfo = await User.findOne({ _id: verifiedToken.id })
+    if (!accountInfo) return createResponse(400, { message: verifiedToken.id })
+
+    const alreadyServer = await Server.findOne({ svId: id })
     if (alreadyServer) return createResponse(202, { message: "already_server_exist" })
 
     const newToken = jwt.sign({
@@ -47,22 +48,27 @@ exports.serverCreate = async (event) => {
     })
 
     const serverInfo = new Server({
-        svName: sv.name,
-        svAddress: sv.address,
-        svCheckURL: sv.checkURL,
-        svImg: sv.img,
+        svId: id,
+        svName: name,
+        svAddress: address,
+        svCheckURL: checkURL,
+        svImg: img,
         svAuthor: accountInfo._id,
         svApiKey: newToken
     })
 
     const res = await serverInfo.save()
 
-    return createResponse(200, {message: "server_created", data: res})
+    return createResponse(200, { message: "server_created", data: res })
 }
 
 exports.serverInfo = async (event) => {
-    const token = event?.queryStringParameters?.token
+    if (!event?.headers?.Authorization) return createResponse(400, { message: "need_token" })
+    const token = event.headers.Authorization.replace("Bearer ", "")
     if (!token) return createResponse(400, { message: "need_token" })
+
+    const serverId = event?.pathParameters?.serverId
+    if (!serverId) return createResponse(400, { message: "need_serverId" })
 
     try {
         jwt.verify(token, process.env.MASTER_PASSWORD)
@@ -71,14 +77,15 @@ exports.serverInfo = async (event) => {
     }
 
     await connect()
-    const server = await Server.findOne({ svName: event.pathParameters.serverName })
+    const server = await Server.findOne({ svId: serverId })
     if (!server) return createResponse(202, { message: "server_not_found" })
 
-    return createResponse(200, {message: "server_found", data: server})
+    return createResponse(200, { message: "server_found", data: server })
 }
 
 exports.serversInfo = async (event) => {
-    const token = event?.queryStringParameters?.token
+    if (!event?.headers?.Authorization) return createResponse(400, { message: "need_token" })
+    const token = event.headers.Authorization.replace("Bearer ", "")
     if (!token) return createResponse(400, { message: "need_token" })
 
     try {
@@ -90,18 +97,18 @@ exports.serversInfo = async (event) => {
     await connect()
     const server = await Server.find({})
 
-    return createResponse(200, {message: "servers_found", data: server})
+    return createResponse(200, { message: "servers_found", data: server })
 }
 
 exports.serverSendMessage = async (event) => {
-    const headerKey = event?.headers?.Authorization
-    if (!headerKey) return createResponse(400, { message: "need_api_key" })
-    const key = headerKey.replace("Bearer ","")
-    const serverId = event?.pathParameters?.serverName
+    if (!event?.headers?.Authorization) return createResponse(400, { message: "need_api_key" })
+    const key = event.headers.Authorization.replace("Bearer ", "")
+
+    const serverId = event?.pathParameters?.serverId
     if (!serverId) return createResponse(400, { message: "need_serverId" })
 
     const reqMsg = JSON.parse(event.body)
-    if(!reqMsg.content || !reqMsg.level) return createResponse(400, { message: "need_content_and_level" })
+    if (!reqMsg.content || !reqMsg.level) return createResponse(400, { message: "need_content_and_level" })
 
     try {
         jwt.verify(key, process.env.MASTER_PASSWORD)
@@ -110,7 +117,7 @@ exports.serverSendMessage = async (event) => {
     }
 
     await connect()
-    const server = await Server.findOne({svId: serverId})
+    const server = await Server.findOne({ svId: serverId })
     if (!server) if (!server) return createResponse(202, { message: "server_not_found" })
 
     const msg = new Message({
@@ -121,15 +128,15 @@ exports.serverSendMessage = async (event) => {
 
     const ResMsg = await msg.save()
 
-    return createResponse(200, {message: "message_send", data: ResMsg})
+    return createResponse(200, { message: "message_send", data: ResMsg })
 }
 
 exports.serverMessageList = async (event) => {
-    const token = event?.queryStringParameters?.token
-    const serverId = event?.pathParameters?.serverName
-    if (!token) return createResponse(400, { message: "need_token" })
+    if (!event?.headers?.Authorization) return createResponse(400, { message: "need_token" })
+    const token = event.headers.Authorization.replace("Bearer ", "")
+
+    const serverId = event?.pathParameters?.serverId
     if (!serverId) return createResponse(400, { message: "need_serverId" })
-    
 
     try {
         jwt.verify(token, process.env.MASTER_PASSWORD)
@@ -138,15 +145,19 @@ exports.serverMessageList = async (event) => {
     }
 
     await connect()
+
+    const server = await Server.findOne({ svId: serverId })
+    if (!server) if (!server) return createResponse(202, { message: "server_not_found" })
+
     const messages = await Message.find({ msgAuthorId: serverId })
     if (!messages) return createResponse(202, { message: "message_not_found" })
 
-    return createResponse(200, {message: "messages_found", data: messages})
+    return createResponse(200, { message: "messages_found", data: messages })
 }
 
 exports.serversMessageList = async (event) => {
-    const token = event?.queryStringParameters?.token
-    if (!token) return createResponse(400, { message: "need_token" })
+    if (!event?.headers?.Authorization) return createResponse(400, { message: "need_token" })
+    const token = event.headers.Authorization.replace("Bearer ", "")
 
     try {
         jwt.verify(token, process.env.MASTER_PASSWORD)
@@ -158,5 +169,80 @@ exports.serversMessageList = async (event) => {
     const messages = await Message.find({})
     if (!messages) return createResponse(202, { message: "message_not_found" })
 
-    return createResponse(200, {message: "messages_found", data: messages})
+    return createResponse(200, { message: "messages_found", data: messages })
+}
+
+exports.serverMessageRemove = async (event) => {
+    if (!event?.headers?.Authorization) return createResponse(400, { message: "need_token" })
+    const token = event.headers.Authorization.replace("Bearer ", "")
+
+    const messageId = event?.queryStringParameters?.messageId
+    if (!messageId) return createResponse(400, { message: "need_messageId" })
+
+    try {
+        jwt.verify(token, process.env.MASTER_PASSWORD)
+    } catch (err) {
+        return createResponse(403, { message: "wrong_token" })
+    }
+
+    await connect()
+
+    const message = await Message.findOne({ _id: messageId })
+    if (!message) return createResponse(202, { message: "message_not_found" })
+
+    await Message.remove({ _id: messageId })
+    return createResponse(200, { "message": "message_removed" })
+}
+
+exports.serverPatch = async (event) => {
+    const { name, address, checkURL, img, memo } = JSON.parse(event.body)
+
+    if (!event?.headers?.Authorization) return createResponse(400, { message: "need_token" })
+    const token = event.headers.Authorization.replace("Bearer ", "")
+
+    const serverId = event?.pathParameters?.serverId
+    if (!serverId) return createResponse(400, { message: "need_serverId" })
+
+    try {
+        jwt.verify(token, process.env.MASTER_PASSWORD)
+    } catch (err) {
+        return createResponse(403, { message: "wrong_token" })
+    }
+
+    await connect()
+
+    const server = await Server.findOne({ svId: serverId })
+    if (!server) if (!server) return createResponse(202, { message: "server_not_found" })
+
+    const update = {}
+    if (name) update.svName = name
+    if (address) update.svAddress = address
+    if (checkURL) update.svCheckURL = checkURL
+    if (img) update.svImg = img
+    if (memo) update.svMemo = memo
+
+    const newServer = await Server.findOneAndUpdate({ svId: serverId }, update, { new: true })
+    return createResponse(200, { "message": "server_patched", newServer })
+}
+
+exports.serverRemove = async (event) => {
+    if (!event?.headers?.Authorization) return createResponse(400, { message: "need_token" })
+    const token = event.headers.Authorization.replace("Bearer ", "")
+
+    const serverId = event?.pathParameters?.serverId
+    if (!serverId) return createResponse(400, { message: "need_serverId" })
+
+    try {
+        jwt.verify(token, process.env.MASTER_PASSWORD)
+    } catch (err) {
+        return createResponse(403, { message: "wrong_token" })
+    }
+
+    await connect()
+
+    const server = await Server.findOne({ svId: serverId })
+    if (!server) if (!server) return createResponse(202, { message: "server_not_found" })
+
+    await Server.remove({ svId: serverId })
+    return createResponse(200, { "message": "server_removed" })
 }

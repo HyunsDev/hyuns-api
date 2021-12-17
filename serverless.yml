@@ -61,47 +61,90 @@ functions:
     handler: src/server.serverInfo
     events: 
       - http:
-          path: server/info/{serverName}
-          method: get
-
-  serverSendMessage:
-    handler: src/server.serverSendMessage
-    events: 
-      - http:
-          path: server/message/{serverName}
-          method: post
-
-  serversMessageList:
-    handler: src/server.serversMessageList
-    events: 
-      - http:
-          path: server/message
-          method: get
-
-  serverMessageList:
-    handler: src/server.serverMessageList
-    events: 
-      - http:
-          path: server/message/{serverName}
+          path: server/info/{serverId}
           method: get
 
   serverPatch:
     handler: src/server.serverPatch
     events: 
       - http:
-          path: server/{serverName}
+          path: server/{serverId}
           method: patch
 
   serverRemove:
     handler: src/server.serverRemove
     events: 
       - http:
-          path: server/{serverName}
+          path: server/{serverId}
           method: delete
+
+  serverSendMessage:
+    handler: src/server.serverSendMessage
+    events: 
+      - http:
+          path: message/{serverId}
+          method: post
+
+  serversMessageList:
+    handler: src/server.serversMessageList
+    events: 
+      - http:
+          path: message
+          method: get
+
+  serverMessageList:
+    handler: src/server.serverMessageList
+    events: 
+      - http:
+          path: message/{serverId}
+          method: get
 
   serverMessageRemove:
     handler: src/server.serverMessageRemove
     events: 
       - http:
-          path: server/message/{messageId}
+          path: message
           method: delete
+
+  varCreate:
+    handler: src/var.varCreate
+    events: 
+      - http:
+          path: var/{isSecret}
+          method: post
+
+
+  varList:
+    handler: src/var.varList
+    events: 
+      - http:
+          path: var/{isSecret}
+          method: get
+
+  varListByGroup:
+    handler: src/var.varListByGroup
+    events: 
+      - http:
+          path: var/{isSecret}/${group}
+          method: get
+
+  varValue:
+    handler: src/var.varValue
+    events: 
+      - http:
+          path: var/{isSecret}/{group}/{key}
+          method: get
+
+  varRemove:
+    handler: src/var.varRemove
+    events: 
+      - http:
+          path: var/{isSecret}/{group}/{key}
+          method: delete
+
+  varPatch:
+    handler: src/var.varPatch
+    events: 
+      - http:
+          path: var/{isSecret}/{group}/{key}
+          method: patch
