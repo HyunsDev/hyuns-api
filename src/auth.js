@@ -78,60 +78,51 @@ exports.login = async (event) => {
 }
 
 exports.deleteAccount = async (event) => {
+    if (!event?.headers?.Authorization) return createResponse(400, { message: "need_token" })
+    const token = event.headers.Authorization.replace("Bearer ","")
+
+    let verifiedToken
     try {
-        const { token } = JSON.parse(event.body)
-        if (!token) return createResponse(400, { message: "need_token" })
-
-        let verifiedToken
-        try {
-            verifiedToken = jwt.verify(token, process.env.MASTER_PASSWORD)
-        } catch (err) {
-            return createResponse(403, { message: "wrong_token" })
-        }
-
-        await connect()
-        const accountInfo = await User.findOne({ userId: verifiedToken.id })
-        if (!accountInfo) return createResponse(400, { message: "user_not_found" })
-
-        await User.remove({ id: verifiedToken.id })
-        return createResponse(200, { message: "account_deleted" })
-
+        verifiedToken = jwt.verify(token, process.env.MASTER_PASSWORD)
     } catch (err) {
-        return createResponse(500, err)
+        return createResponse(403, { message: "wrong_token" })
     }
+
+    await connect()
+    const accountInfo = await User.findOne({ userId: verifiedToken.id })
+    if (!accountInfo) return createResponse(400, { message: "user_not_found" })
+
+    await User.remove({ id: verifiedToken.id })
+    return createResponse(200, { message: "account_deleted" })
 }
 
 exports.patchAccount = async (event) => {
+    const { password, name, img, role } = JSON.parse(event.body)
+    if (!event?.headers?.Authorization) return createResponse(400, { message: "need_token" })
+    const token = event.headers.Authorization.replace("Bearer ","")
+
+    let verifiedToken
     try {
-        const { password, name, img, role, token } = JSON.parse(event.body)
-        if (!token) return createResponse(400, { message: "need_token" })
-
-        let verifiedToken
-        try {
-            verifiedToken = jwt.verify(token, process.env.MASTER_PASSWORD)
-        } catch (err) {
-            return createResponse(403, { message: "wrong_token" })
-        }
-
-        await connect()
-        const accountInfo = await User.findOne({ userId: verifiedToken.id })
-        if (!accountInfo) return createResponse(400, { message: "user_not_found" })
-
-        const update = {}
-        if (name) update.userName = name
-        if (img) update.userImg = img
-        if (role) update.userRole = role
-        if (password) {
-            const salt = crypto.randomBytes(64).toString('base64')
-            const hashedPassword = crypto.pbkdf2Sync(password, salt, 8, 64, 'sha512').toString('base64')
-            update.userPassword = hashedPassword
-            update.userPasswordSalt = salt
-        }
-
-        const user = await User.findOneAndUpdate({ id: verifiedToken.id }, update, { new: true })
-        return createResponse(200, { "message": "account_patched", user })
-
+        verifiedToken = jwt.verify(token, process.env.MASTER_PASSWORD)
     } catch (err) {
-        return createResponse(500, err)
+        return createResponse(403, { message: "wrong_token" })
     }
+
+    await connect()
+    const accountInfo = await User.findOne({ userId: verifiedToken.id })
+    if (!accountInfo) return createResponse(400, { message: "user_not_found" })
+
+    const update = {}
+    if (name) update.userName = name
+    if (img) update.userImg = img
+    if (role) update.userRole = role
+    if (password) {
+        const salt = crypto.randomBytes(64).toString('base64')
+        const hashedPassword = crypto.pbkdf2Sync(password, salt, 8, 64, 'sha512').toString('base64')
+        update.userPassword = hashedPassword
+        update.userPasswordSalt = salt
+    }
+
+    const user = await User.findOneAndUpdate({ id: verifiedToken.id }, update, { new: true })
+    return createResponse(200, { "message": "account_patched", user })
 }
