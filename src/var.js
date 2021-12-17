@@ -68,3 +68,23 @@ exports.varList = async (event) => {
 
     return createResponse(200, {message: "vars_found", data: variable})
 }
+
+exports.varListByGroup = async (event) => {
+    if (!event?.headers?.Authorization) return createResponse(400, { message: "need_token" })
+    const token = event.headers.Authorization.replace("Bearer ", "")
+
+    if (event.pathParameters.isSecret !== "secret" && event.pathParameters.isSecret !== "global") return createResponse(404, "")
+    const isSecret = event.pathParameters.isSecret == "secret"
+
+    try {
+        jwt.verify(token, process.env.MASTER_PASSWORD)
+    } catch (err) {
+        return createResponse(403, { message: "wrong_token" })
+    }
+
+    await connect()
+    
+    const variable = await Var.find({varIsSecret: isSecret, group: event.pathParameters.group})
+
+    return createResponse(200, {message: "vars_found", data: variable})
+}
