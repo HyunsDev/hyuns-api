@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
-const { User, Server } = require("./models/schema")
+const { User, Server, Message } = require("./models/schema")
 
 let connection = null
 
@@ -75,4 +75,48 @@ exports.serverInfo = async (event) => {
     if (!server) return createResponse(202, { message: "server_not_found" })
 
     return createResponse(200, {message: "server_found", data: server})
+}
+
+exports.serversInfo = async (event) => {
+    const token = event?.queryStringParameters?.token
+    if (!token) return createResponse(400, { message: "need_token" })
+
+    try {
+        jwt.verify(token, process.env.MASTER_PASSWORD)
+    } catch (err) {
+        return createResponse(403, { message: "wrong_token" })
+    }
+
+    await connect()
+    const server = await Server.find({})
+
+    return createResponse(200, {message: "servers_found", data: server})
+}
+
+exports.serverSendMessage = async (event) => {
+    const key = event.headers?.Authorization.replace("Bearer ","")
+    if (!key) return createResponse(400, { message: "need_api_key" })
+
+    const reqMsg = JSON.parse(event.body)
+    if(!reqMsg.content || !reqMsg.level) return createResponse(400, { message: "need_content_and_level" })
+
+    try {
+        jwt.verify(key, process.env.MASTER_PASSWORD)
+    } catch (err) {
+        return createResponse(403, { message: "wrong_api_key " + key })
+    }
+
+    await connect()
+    const server = await Server.findOne({svId: event.pathParameters?.serverName})
+    if (!server) if (!server) return createResponse(202, { message: "server_not_found" })
+
+    const msg = new Message({
+        msgContent: reqMsg.content,
+        msgAuthor: server.svId,
+        msgLevel: reqMsg.level
+    })
+
+    const ResMsg = await msg.save()
+
+    return createResponse(200, {message: "message_send", data: ResMsg})
 }

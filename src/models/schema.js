@@ -27,6 +27,7 @@ module.exports.Var = global.Var;
 // Server 스키마
 const ServerSchema = new mongoose.Schema({
     svName: String,
+    svId: String,
     svAddress: String,
     svCheckURL: String,
     svImg: String,
@@ -48,3 +49,13 @@ const ResourceSchema = new mongoose.Schema({
 })
 global.Resource = global.Resource || mongoose.model('Resource', ResourceSchema);
 module.exports.Resource = global.Resource;
+
+// Message 스키마
+const MessageSchema = new mongoose.Schema({
+    msgContent: String,
+    msgAuthorId: String,
+    msgCreated: { type: Date, required: true, default: () => Date.now() },
+    msgLevel: String
+})
+global.Message = global.Message || mongoose.model('Message', MessageSchema);
+module.exports.Message = global.Message;

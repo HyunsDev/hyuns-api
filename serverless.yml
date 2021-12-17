@@ -64,6 +64,13 @@ functions:
           path: server/info/{serverName}
           method: get
 
+  serverSendMessage:
+    handler: src/server.serverSendMessage
+    events: 
+      - http:
+          path: server/message/{serverName}
+          method: post
+
   serversMessageList:
     handler: src/server.serversMessageList
     events: 
@@ -77,13 +84,6 @@ functions:
       - http:
           path: server/message/{serverName}
           method: get
-
-  serverSendMessage:
-    handler: src/server.serverSendMessage
-    events: 
-      - http:
-          path: server/message/{serverName}
-          method: post
 
   serverPatch:
     handler: src/server.serverPatch
