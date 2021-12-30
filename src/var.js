@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
-const { User, Var } = require("./models/schema")
+const { Var } = require("./models/schema")
 
 let connection = null
 

@@ -13,6 +13,11 @@ provider:
   environment:
     DB_CONNECT: ${self:custom.env.DB_CONNECT}
     MASTER_PASSWORD: ${self:custom.env.MASTER_PASSWORD}
+    S3_ACCESS_KEY: ${self:custom.env.S3_ACCESS_KEY}
+    S3_SECRET_KEY: ${self:custom.env.S3_SECRET_KEY}
+    S3_REGION: ${self:custom.env.S3_REGION}
+    S3_BUCKET: ${self:custom.env.S3_BUCKET}
+    DISCORD_SERVER_MESSAGE_WEBHOOK: ${self:custom.env.DISCORD_SERVER_MESSAGE_WEBHOOK}
 
 functions:
   authLogin:
@@ -147,3 +152,24 @@ functions:
       - http:
           path: var/{isSecret}/{group}/{key}
           method: patch
+
+  resourceUpload:
+    handler: src/resource.upload
+    events:
+      - http:
+          path: resource
+          method: post
+  
+  resourceList:
+    handler: src/resource.resourceList
+    events:
+      - http:
+          path: resource
+          method: get
+  
+  resourceDelete:
+    handler: src/resource.delete
+    events:
+      - http:
+          path: resource
+          method: delete
