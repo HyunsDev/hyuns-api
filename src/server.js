@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
+const { Webhook, MessageBuilder } = require("discord-webhook-node")
 const { User, Server, Message } = require("./models/schema")
 
 let connection = null
@@ -15,6 +16,8 @@ const createResponse = (status, body) => ({
     statusCode: status,
     body: JSON.stringify(body)
 })
+
+const serverHook = new Webhook(process.env.DISCORD_SERVER_MESSAGE_WEBHOOK)
 
 exports.serverCreate = async (event) => {
     if (!event?.headers?.Authorization) return createResponse(400, { message: "need_token" })
@@ -95,6 +98,7 @@ exports.serversInfo = async (event) => {
     }
 
     await connect()
+
     const server = await Server.find({})
 
     return createResponse(200, { message: "servers_found", data: server })
@@ -117,8 +121,8 @@ exports.serverSendMessage = async (event) => {
     }
 
     await connect()
-    const server = await Server.findOne({ svId: serverId })
-    if (!server) if (!server) return createResponse(202, { message: "server_not_found" })
+    const server = await Server.findOne({ _id: serverId })
+    if (!server) return createResponse(202, { message: "server_not_found" })
 
     const msg = new Message({
         msgContent: reqMsg.content,
@@ -127,6 +131,33 @@ exports.serverSendMessage = async (event) => {
     })
 
     const ResMsg = await msg.save()
+
+    let color
+    switch (reqMsg.level) {
+        case "info":
+            color = "#4AD175"
+            break;
+    
+        case "warn":
+            color = "#E8CC3E"
+            break;
+
+        case "error":
+            color = "#FC3333"
+            break;
+
+        default:
+            color = "#3359FC"
+            break;
+    }
+
+    const embed = new MessageBuilder()
+        .setTitle(reqMsg.content)
+        .setColor(color)
+        .setFooter(server.svName, server.svImg)
+        .setTimestamp()
+
+    await serverHook.send(embed)
 
     return createResponse(200, { message: "message_send", data: ResMsg })
 }
