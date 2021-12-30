@@ -36,6 +36,7 @@ exports.upload = async (event) => {
     }
 
     const { path } = JSON.parse(event.body)
+    if (!path) return createResponse(400, "need_path")
 
     const uploadURL = await S3.getSignedUrlPromise('putObject', {
         Bucket: process.env.S3_BUCKET,
