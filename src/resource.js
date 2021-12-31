@@ -22,7 +22,13 @@ const URL_EXPIRATION_SECONDS = 300
 
 const createResponse = (status, body) => ({
     statusCode: status,
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
+    headers: {
+        "Access-Control-Allow-Origin": "*",
+        'Access-Control-Allow-Credentials': false,
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Methods":"OPTIONS,POST,GET,PUT,DELETE"
+    }
 })
 
 exports.upload = async (event) => {
@@ -62,7 +68,7 @@ exports.resourceList = async (event) => {
         Bucket: process.env.S3_BUCKET,
     }).promise()
 
-    return createResponse(200, { fileList })
+    return createResponse(200, fileList)
 }
 
 exports.delete = async (event) => {

@@ -3,13 +3,21 @@ frameworkVersion: '2'
 
 custom:
   env: ${file(./env/${opt:stage, 'dev'}.json)}
+  customDomain:
+    domainName: api.hyuns.dev
+    basePath: ''
+    stage: ${self:provider.stage}
+    certificateName: 'api.hyuns.dev'
+
+plugins:
+  - serverless-domain-manager
 
 provider:
   name: aws
   runtime: nodejs14.x
   lambdaHashingVersion: 20211216
   region: ap-northeast-2
-  stage: dev
+  stage: production
   environment:
     DB_CONNECT: ${self:custom.env.DB_CONNECT}
     MASTER_PASSWORD: ${self:custom.env.MASTER_PASSWORD}
@@ -20,10 +28,19 @@ provider:
     DISCORD_SERVER_MESSAGE_WEBHOOK: ${self:custom.env.DISCORD_SERVER_MESSAGE_WEBHOOK}
 
 functions:
+  helloWorld:
+    handler: src/index.helloWorld
+    events: 
+      - http:
+          cors: true
+          path: /
+          method: get
+
   authLogin:
     handler: src/auth.login
     events: 
       - http:
+          cors: true
           path: auth/login
           method: post
 
@@ -31,6 +48,7 @@ functions:
     handler: src/auth.createAccount
     events: 
       - http:
+          cors: true
           path: auth/account
           method: post
 
@@ -38,6 +56,7 @@ functions:
     handler: src/auth.deleteAccount
     events: 
       - http:
+          cors: true
           path: auth/account
           method: delete
 
@@ -45,6 +64,7 @@ functions:
     handler: src/auth.patchAccount
     events: 
       - http:
+          cors: true
           path: auth/account
           method: patch
 
@@ -52,6 +72,7 @@ functions:
     handler: src/server.serverCreate
     events: 
       - http:
+          cors: true
           path: server
           method: post
 
@@ -59,6 +80,7 @@ functions:
     handler: src/server.serversInfo
     events: 
       - http:
+          cors: true
           path: server/info
           method: get
 
@@ -66,6 +88,7 @@ functions:
     handler: src/server.serverInfo
     events: 
       - http:
+          cors: true
           path: server/info/{serverId}
           method: get
 
@@ -73,6 +96,7 @@ functions:
     handler: src/server.serverPatch
     events: 
       - http:
+          cors: true
           path: server/{serverId}
           method: patch
 
@@ -80,6 +104,7 @@ functions:
     handler: src/server.serverRemove
     events: 
       - http:
+          cors: true
           path: server/{serverId}
           method: delete
 
@@ -87,13 +112,15 @@ functions:
     handler: src/server.serverSendMessage
     events: 
       - http:
-          path: message/{serverId}
+          cors: true
+          path: message
           method: post
 
   serversMessageList:
     handler: src/server.serversMessageList
     events: 
       - http:
+          cors: true
           path: message
           method: get
 
@@ -101,6 +128,7 @@ functions:
     handler: src/server.serverMessageList
     events: 
       - http:
+          cors: true
           path: message/{serverId}
           method: get
 
@@ -108,6 +136,7 @@ functions:
     handler: src/server.serverMessageRemove
     events: 
       - http:
+          cors: true
           path: message
           method: delete
 
@@ -115,6 +144,7 @@ functions:
     handler: src/var.varCreate
     events: 
       - http:
+          cors: true
           path: var/{isSecret}
           method: post
 
@@ -122,6 +152,7 @@ functions:
     handler: src/var.varList
     events: 
       - http:
+          cors: true
           path: var/{isSecret}
           method: get
 
@@ -129,6 +160,7 @@ functions:
     handler: src/var.varListByGroup
     events: 
       - http:
+          cors: true
           path: var/{isSecret}/${group}
           method: get
 
@@ -136,6 +168,7 @@ functions:
     handler: src/var.varValue
     events: 
       - http:
+          cors: true
           path: var/{isSecret}/{group}/{key}
           method: get
 
@@ -143,6 +176,7 @@ functions:
     handler: src/var.varRemove
     events: 
       - http:
+          cors: true
           path: var/{isSecret}/{group}/{key}
           method: delete
 
@@ -150,6 +184,7 @@ functions:
     handler: src/var.varPatch
     events: 
       - http:
+          cors: true
           path: var/{isSecret}/{group}/{key}
           method: patch
 
@@ -157,6 +192,7 @@ functions:
     handler: src/resource.upload
     events:
       - http:
+          cors: true
           path: resource
           method: post
   
@@ -164,6 +200,7 @@ functions:
     handler: src/resource.resourceList
     events:
       - http:
+          cors: true
           path: resource
           method: get
   
@@ -171,5 +208,6 @@ functions:
     handler: src/resource.delete
     events:
       - http:
+          cors: true
           path: resource
           method: delete

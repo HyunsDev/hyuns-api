@@ -4,5 +4,8 @@
     "discord-webhook-node": "^1.1.8",
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^6.1.2"
+  },
+  "devDependencies": {
+    "serverless-domain-manager": "^5.2.0"
   }
 }

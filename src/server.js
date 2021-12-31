@@ -14,7 +14,13 @@ const connect = async () => {
 
 const createResponse = (status, body) => ({
     statusCode: status,
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
+    headers: {
+        "Access-Control-Allow-Origin": "*",
+        'Access-Control-Allow-Credentials': false,
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Methods":"OPTIONS,POST,GET,PUT,DELETE"
+    }
 })
 
 const serverHook = new Webhook(process.env.DISCORD_SERVER_MESSAGE_WEBHOOK)
@@ -42,9 +48,10 @@ exports.serverCreate = async (event) => {
     if (alreadyServer) return createResponse(202, { message: "already_server_exist" })
 
     const newToken = jwt.sign({
-        id: accountInfo.id,
-        name: accountInfo.name,
-        img: accountInfo.img
+        id: id,
+        name: name,
+        img: accountInfo.img,
+        svAddress: address
     }, process.env.MASTER_PASSWORD, {
         issuer: 'api.hyuns.dev',
         subject: 'serverInfo'
@@ -62,7 +69,7 @@ exports.serverCreate = async (event) => {
 
     const res = await serverInfo.save()
 
-    return createResponse(200, { message: "server_created", data: res })
+    return createResponse(200, res)
 }
 
 exports.serverInfo = async (event) => {
@@ -83,7 +90,7 @@ exports.serverInfo = async (event) => {
     const server = await Server.findOne({ svId: serverId })
     if (!server) return createResponse(202, { message: "server_not_found" })
 
-    return createResponse(200, { message: "server_found", data: server })
+    return createResponse(200, server)
 }
 
 exports.serversInfo = async (event) => {
@@ -108,20 +115,18 @@ exports.serverSendMessage = async (event) => {
     if (!event?.headers?.Authorization) return createResponse(400, { message: "need_api_key" })
     const key = event.headers.Authorization.replace("Bearer ", "")
 
-    const serverId = event?.pathParameters?.serverId
-    if (!serverId) return createResponse(400, { message: "need_serverId" })
-
     const reqMsg = JSON.parse(event.body)
     if (!reqMsg.content || !reqMsg.level) return createResponse(400, { message: "need_content_and_level" })
 
+    let verifiedKey
     try {
-        jwt.verify(key, process.env.MASTER_PASSWORD)
+        verifiedKey = jwt.verify(key, process.env.MASTER_PASSWORD)
     } catch (err) {
         return createResponse(403, { message: "wrong_api_key " + key })
     }
 
     await connect()
-    const server = await Server.findOne({ _id: serverId })
+    const server = await Server.findOne({ svId: verifiedKey.svId })
     if (!server) return createResponse(202, { message: "server_not_found" })
 
     const msg = new Message({
@@ -159,7 +164,7 @@ exports.serverSendMessage = async (event) => {
 
     await serverHook.send(embed)
 
-    return createResponse(200, { message: "message_send", data: ResMsg })
+    return createResponse(200, ResMsg)
 }
 
 exports.serverMessageList = async (event) => {
@@ -253,7 +258,7 @@ exports.serverPatch = async (event) => {
     if (memo) update.svMemo = memo
 
     const newServer = await Server.findOneAndUpdate({ svId: serverId }, update, { new: true })
-    return createResponse(200, { "message": "server_patched", newServer })
+    return createResponse(200, newServer)
 }
 
 exports.serverRemove = async (event) => {

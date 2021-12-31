@@ -13,7 +13,13 @@ const connect = async () => {
 
 const createResponse = (status, body) => ({
     statusCode: status,
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
+    headers: {
+        "Access-Control-Allow-Origin": "*",
+        'Access-Control-Allow-Credentials': false,
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Methods":"OPTIONS,POST,GET,PUT,DELETE"
+    }
 })
 
 exports.varCreate = async (event) => {
@@ -46,7 +52,7 @@ exports.varCreate = async (event) => {
     })
 
     const variable = await variableInfo.save()
-    return createResponse(200, {message: "var_created", data: variable})
+    return createResponse(200, variable)
 }
 
 exports.varList = async (event) => {
@@ -139,7 +145,7 @@ exports.varPatch = async (event) => {
 
     const newVar = await Var.findOneAndUpdate({varIsSecret: isSecret, varGroup: event.pathParameters.group, varKey: event.pathParameters.key}, update, {new: true})
 
-    return createResponse(200, {message: "var_updated", data: newVar})
+    return createResponse(200, newVar)
 }
 
 exports.varRemove = async (event) => {
