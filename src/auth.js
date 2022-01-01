@@ -68,7 +68,7 @@ exports.login = async (event) => {
         if (hashedPassword !== accountInfo.userPassword) return createResponse(403, { message: "wrong_password" })
 
         const token = jwt.sign({
-            id: id,
+            id: accountInfo._id,
             name: accountInfo.name,
             img: accountInfo.img
         }, process.env.MASTER_PASSWORD, {

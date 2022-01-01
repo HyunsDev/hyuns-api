@@ -81,7 +81,8 @@ exports.delete = async (event) => {
         return createResponse(403, { message: "wrong_token" })
     }
 
-    const { path } = JSON.parse(event.body)
+    const path = event?.queryStringParameters?.path
+    if (!path) return createResponse(400, { message: "need_path" })
 
     const deleteObject = await S3.deleteObject({
         Bucket: process.env.S3_BUCKET,

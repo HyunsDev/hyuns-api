@@ -36,7 +36,7 @@ exports.varCreate = async (event) => {
     }
 
     const { group, key, value, img } = JSON.parse(event.body)
-    if (!group || !key || !value || !img) return createResponse(400, {message: "need_more_info"})
+    if (!group || !key || !value) return createResponse(400, {message: "need_more_info"})
 
     await connect()
     
@@ -114,9 +114,19 @@ exports.varValue = async (event) => {
     const variable = await Var.findOne({varIsSecret: isSecret, varGroup: event.pathParameters.group, varKey: event.pathParameters.key})
     if (!variable) return createResponse(404, { message: "var_not_found" })
 
-    return {
-        statusCode: 200,
-        body: variable.varValue
+    if (event.queryStringParameters?.info === "true") {
+        return createResponse(200, variable)
+    } else {
+        return {
+            statusCode: 200,
+            body: variable.varValue,
+            headers: {
+                "Access-Control-Allow-Origin": "*",
+                'Access-Control-Allow-Credentials': false,
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Methods":"OPTIONS,POST,GET,PUT,DELETE"
+            }
+        }
     }
 }
 
@@ -141,7 +151,7 @@ exports.varPatch = async (event) => {
 
     const update = {}
     if (value) update.varValue = value
-    if (img) update.varImg = img
+    update.varImg = img
 
     const newVar = await Var.findOneAndUpdate({varIsSecret: isSecret, varGroup: event.pathParameters.group, varKey: event.pathParameters.key}, update, {new: true})
 

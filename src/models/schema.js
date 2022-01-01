@@ -35,7 +35,8 @@ const ServerSchema = new mongoose.Schema({
     svLastCheckStatus: String,
     svLastCheck: Date,
     svAuthor: String,
-    svApiKey: String
+    svApiKey: String,
+    svStatus: String
 })
 global.Server = global.Server || mongoose.model('Server', ServerSchema);
 module.exports.Server = global.Server;

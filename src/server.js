@@ -29,7 +29,7 @@ exports.serverCreate = async (event) => {
     if (!event?.headers?.Authorization) return createResponse(400, { message: "need_token" })
     const token = event.headers.Authorization.replace("Bearer ", "")
 
-    const { id, name, address, checkURL, img } = JSON.parse(event.body)
+    const { id, name, address, checkURL, img, memo } = JSON.parse(event.body)
     if (!id || !name || !address || !checkURL || !img) return createResponse(400, { message: "need_serverInfo" })
 
     let verifiedToken
@@ -51,7 +51,7 @@ exports.serverCreate = async (event) => {
         id: id,
         name: name,
         img: accountInfo.img,
-        svAddress: address
+        svAddress: address,
     }, process.env.MASTER_PASSWORD, {
         issuer: 'api.hyuns.dev',
         subject: 'serverInfo'
@@ -64,7 +64,9 @@ exports.serverCreate = async (event) => {
         svCheckURL: checkURL,
         svImg: img,
         svAuthor: accountInfo._id,
-        svApiKey: newToken
+        svApiKey: newToken,
+        svMemo: memo,
+        svStatus: "good",
     })
 
     const res = await serverInfo.save()
@@ -88,7 +90,7 @@ exports.serverInfo = async (event) => {
 
     await connect()
     const server = await Server.findOne({ svId: serverId })
-    if (!server) return createResponse(202, { message: "server_not_found" })
+    if (!server) return createResponse(404, { message: "server_not_found" })
 
     return createResponse(200, server)
 }
@@ -185,7 +187,7 @@ exports.serverMessageList = async (event) => {
     const server = await Server.findOne({ svId: serverId })
     if (!server) if (!server) return createResponse(202, { message: "server_not_found" })
 
-    const messages = await Message.find({ msgAuthorId: serverId })
+    const messages = await Message.find({ msgAuthorId: serverId }).sort("-msgCreated")
     if (!messages) return createResponse(202, { message: "message_not_found" })
 
     return createResponse(200, { message: "messages_found", data: messages })
@@ -201,8 +203,16 @@ exports.serversMessageList = async (event) => {
         return createResponse(403, { message: "wrong_token" })
     }
 
+    const limit = event?.queryStringParameters?.limit
+
     await connect()
-    const messages = await Message.find({})
+    let messages
+    if (limit) {
+        messages = await Message.find({}).sort("-msgCreated").limit(Number(limit))
+    } else {
+        messages = await Message.find({}).sort("-msgCreated")
+    }
+    
     if (!messages) return createResponse(202, { message: "message_not_found" })
 
     return createResponse(200, { message: "messages_found", data: messages })
